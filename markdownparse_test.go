@@ -5,10 +5,10 @@ import (
 	"testing"
 )
 
-func printNodeTree(t *testing.T, nodeTree *gquery.MarkdownNode) {
-	t.Log(nodeTree)
-	for _, node := range nodeTree.Children(gquery.MdNone) {
-		printNodeTree(t, node)
+func printNodeList(t *testing.T, nodeList []*gquery.MarkdownNode) {
+	for _, node := range nodeList {
+		t.Log(node)
+		printNodeList(t, node.Children(gquery.MdAll))
 	}
 }
 
@@ -23,11 +23,13 @@ http://www.baidu.com
 - google
 http://www.google.com
 `
-	treeRoot := gquery.ParseMarkdown(testData)
-	t.Log(len(treeRoot.Children(gquery.MdNone)))
-	printNodeTree(t, treeRoot)
+	gq := gquery.NewMarkdown(testData)
+	children := gq.Gquery(gquery.MdAll)
+	t.Log(len(children))
+	printNodeList(t, children)
 
-	t.Log("search")
-	t.Log(treeRoot.Children(gquery.MdTitle)[0])
-	t.Log(treeRoot.First(gquery.MdUnorderList))
+	t.Log("test search")
+	t.Log(gq.Gquery(gquery.MdTitle)[0])
+	t.Log(gq.Gquery(gquery.MdUnorderList)[0].First(gquery.MdUnorderList) ==
+		gq.Gquery(gquery.MdUnorderList)[0].Last(gquery.MdUnorderList))
 }

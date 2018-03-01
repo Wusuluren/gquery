@@ -6,21 +6,15 @@ import (
 	"strings"
 )
 
-var _ = fmt.Println
-
-type MarkdownNode struct {
-	Type      int
-	Attribute map[string]string
-	Text      string
-	RawText   string
-	Value     []string
-	parent    *MarkdownNode
-	children  []*MarkdownNode
-	tabNum    int
+type GqueryMarkdown struct {
+	treeRoot *MarkdownNode
 }
+
+var _ = fmt.Println
 
 const (
 	MdNone = iota
+	MdAll
 	MdTitle
 	MdMajorTitle
 	MdSubTitle
@@ -43,9 +37,11 @@ const (
 func isDigital(c byte) bool {
 	return c >= '0' && c <= '9'
 }
+
 func isAlpha(c byte) bool {
 	return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')
 }
+
 func isTitle(line string) (bool, int, string) {
 	if len(line) >= 2 && line[0:2] == "# " {
 		return true, 2, "1"
@@ -63,6 +59,7 @@ func isTitle(line string) (bool, int, string) {
 		return false, 0, "0"
 	}
 }
+
 func isParagraph(line string) (bool, int) {
 	i := 0
 	for _, c := range line {
@@ -77,12 +74,14 @@ func isParagraph(line string) (bool, int) {
 	c := line[i]
 	return isAlpha(c) || isDigital(c), i
 }
+
 func isOrderList(line string) (bool, int) {
 	if len(line) < 3 {
 		return false, 0
 	}
 	return isDigital(line[0]) && line[1] == '.' && line[2] == ' ', 3
 }
+
 func isUnorderList(line string) (bool, int) {
 	if len(line) < 2 {
 		return false, 0
@@ -90,6 +89,7 @@ func isUnorderList(line string) (bool, int) {
 	isValidStart := line[0] == '-' || line[0] == '+' || line[0] == '*'
 	return isValidStart && line[1] == ' ', 2
 }
+
 func isQuote(line string) (bool, int, string) {
 	num := 0
 	for _, c := range line {
@@ -107,12 +107,12 @@ func isQuote(line string) (bool, int, string) {
 	return false, 0, "0"
 }
 
-func ParseMarkdown(markdown string) *MarkdownNode {
+func (gq *GqueryMarkdown) parse(markdown string) *MarkdownNode {
 	lines := strings.Split(markdown, "\n")
 	nodeList := make([]*MarkdownNode, 0)
 	curTag := MdNone
 	for i := 0; i < len(lines); i++ {
-		getValue := func() []string {
+		getValue := func() string {
 			value := make([]string, 0)
 			for k := i + 1; k < len(lines); k++ {
 				if ok, idx := isParagraph(lines[k]); ok {
@@ -122,7 +122,7 @@ func ParseMarkdown(markdown string) *MarkdownNode {
 					break
 				}
 			}
-			return value
+			return strings.Join(value, "\n")
 		}
 		line := lines[i]
 		tabNum := 0
@@ -134,45 +134,45 @@ func ParseMarkdown(markdown string) *MarkdownNode {
 				}
 				if ok, idx, level := isTitle(line[j:]); ok {
 					nodeList = append(nodeList, &MarkdownNode{
-						Type: MdTitle,
-						Attribute: map[string]string{
+						_type: MdTitle,
+						attr: map[string]string{
 							"level": level,
 						},
-						Text:     line[tabNum+idx:],
-						RawText:  line[tabNum:],
-						Value:    getValue(),
+						text:     line[tabNum+idx:],
+						html:     line[tabNum:],
+						value:    getValue(),
 						tabNum:   tabNum,
 						children: make([]*MarkdownNode, 0),
 					})
 					break
 				} else if ok, idx := isOrderList(line[j:]); ok {
 					nodeList = append(nodeList, &MarkdownNode{
-						Type:     MdOrderList,
-						Text:     line[tabNum+idx:],
-						RawText:  line[tabNum:],
-						Value:    getValue(),
+						_type:    MdOrderList,
+						text:     line[tabNum+idx:],
+						html:     line[tabNum:],
+						value:    getValue(),
 						tabNum:   tabNum,
 						children: make([]*MarkdownNode, 0),
 					})
 					break
 				} else if ok, idx := isUnorderList(line[j:]); ok {
 					nodeList = append(nodeList, &MarkdownNode{
-						Type:     MdUnorderList,
-						Text:     line[tabNum+idx:],
-						RawText:  line[tabNum:],
-						Value:    getValue(),
+						_type:    MdUnorderList,
+						text:     line[tabNum+idx:],
+						html:     line[tabNum:],
+						value:    getValue(),
 						tabNum:   tabNum,
 						children: make([]*MarkdownNode, 0),
 					})
 					break
 				} else if ok, idx, num := isQuote(line[j:]); ok {
 					nodeList = append(nodeList, &MarkdownNode{
-						Type: MdUnorderList,
-						Attribute: map[string]string{
+						_type: MdUnorderList,
+						attr: map[string]string{
 							"num": num,
 						},
-						Text:     line[tabNum+idx:],
-						RawText:  line[tabNum:],
+						text:     line[tabNum+idx:],
+						html:     line[tabNum:],
 						tabNum:   tabNum,
 						children: make([]*MarkdownNode, 0),
 					})
@@ -214,106 +214,12 @@ func ParseMarkdown(markdown string) *MarkdownNode {
 	return nodeTreeRoot
 }
 
-func (md *MarkdownNode) Parent() *MarkdownNode {
-	return md.parent
+func (gq *GqueryMarkdown) Gquery(Type int) []*MarkdownNode {
+	return gq.treeRoot.Gquery(Type)
 }
 
-func (md *MarkdownNode) Children(Type int) []*MarkdownNode {
-	results := make([]*MarkdownNode, 0)
-	if Type == MdNone {
-		results = append(results, md.children...)
-	} else {
-		for _, node := range md.children {
-			if node.Type == Type {
-				results = append(results, node)
-			}
-		}
-	}
-	return results
-}
-
-func (md *MarkdownNode) Find(Type int) *MarkdownNode {
-	var result *MarkdownNode
-	for _, node := range md.children {
-		if node.Type == Type {
-			result = node
-			break
-		}
-	}
-	return result
-}
-
-func (md *MarkdownNode) Next() *MarkdownNode {
-	var result *MarkdownNode
-	for i, node := range md.parent.children {
-		if node == md {
-			if i+1 < len(md.parent.children) {
-				result = md.parent.children[i+1]
-			}
-			break
-		}
-	}
-	return result
-}
-
-func (md *MarkdownNode) First(Type int) *MarkdownNode {
-	var result *MarkdownNode
-	for _, node := range md.children {
-		if node.Type == Type {
-			result = node
-			break
-		}
-	}
-	return result
-}
-
-func (md *MarkdownNode) Last(Type int) *MarkdownNode {
-	var result *MarkdownNode
-	for i := len(md.children) - 1; i >= 0; i-- {
-		node := md.children[i]
-		if node.Type == Type {
-			result = node
-			break
-		}
-	}
-	return result
-}
-
-func (md *MarkdownNode) Eq(Type, idx int) *MarkdownNode {
-	var result *MarkdownNode
-	ctr := 0
-	for _, node := range md.children {
-		if node.Type == Type {
-			ctr++
-			if ctr >= idx {
-				result = node
-				break
-			}
-		}
-	}
-	return result
-}
-
-func (md *MarkdownNode) Append(node *MarkdownNode) {
-	if md.children == nil {
-		md.children = make([]*MarkdownNode, 0)
-	}
-	node.parent = md
-	md.children = append(md.children, node)
-}
-
-func (md *MarkdownNode) Remove() {
-	idx := 0
-	if md.parent == nil {
-		fmt.Println(md)
-	}
-	for i, node := range md.parent.children {
-		if node == md {
-			idx = i
-			break
-		}
-	}
-	children2 := md.parent.children[idx+1:]
-	md.parent.children = md.parent.children[0:idx]
-	md.parent.children = append(md.parent.children, children2...)
+func NewMarkdown(str string) *GqueryMarkdown {
+	md := &GqueryMarkdown{}
+	md.treeRoot = md.parse(str)
+	return md
 }
