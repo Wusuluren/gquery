@@ -8,7 +8,7 @@ func convertByteToString(b byte) string {
 	return fmt.Sprintf("%c", b)
 }
 
-func ReStrCmp(matchStr, reStr string) bool {
+func reStrCmp(matchStr, reStr string) bool {
 	i, j := 0, 0
 	for i < len(matchStr) && j < len(reStr) {
 		if matchStr[i] == reStr[j] {

@@ -8,7 +8,6 @@ import (
 func printHtmlNodeList(t *testing.T, nodeList []*gquery.HtmlNode) {
 	for _, node := range nodeList {
 		t.Log(node)
-		//printNodeList(t, node.Children(gquery.MdAll))
 	}
 }
 
@@ -37,4 +36,7 @@ func TestParseHtml(t *testing.T) {
 		t.Log(metaNode)
 	}
 	t.Log(gq.Gquery("title")[0].Text() == gq.Gquery("title")[0].Html())
+	t.Log(gq.Gquery("head")[0].Attr("charset"))
+	t.Log(gq.Gquery("head")[1].Attr("name"))
+	t.Log(gq.Gquery("html")[0].First("[name]") == gq.Gquery("head")[1])
 }

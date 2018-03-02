@@ -1,8 +1,11 @@
 package gquery
 
 import (
+	"fmt"
 	"strings"
 )
+
+var _ = fmt.Println
 
 type HtmlNode struct {
 	label    string
@@ -19,20 +22,34 @@ type HtmlNodes []*HtmlNode
 
 func (hn *HtmlNode) isFitSelector(selector string) bool {
 	var idName, className, labelName string
+	var tmp []string
 	if selector == "*" {
 		return true
 	}
-	tmp := strings.Split(selector, ".")
+	//match attr
+	if selector[0] == '[' && selector[len(selector)-1] == ']' {
+		selector = selector[1 : len(selector)-1]
+		tmp = strings.Split(selector, "=")
+		if len(tmp) > 1 {
+			attrName := tmp[0]
+			attrValue := tmp[1]
+			return reStrCmp(StrStrMap(hn.attr).Get(attrName), attrValue)
+		}
+		return StrStrMap(hn.attr).Get(selector) != ""
+	}
+	//match class
+	tmp = strings.Split(selector, ".")
 	if len(tmp) > 1 {
 		labelName = tmp[0]
 		className = tmp[1]
-		return hn.label == labelName && StrStrMap(hn.attr).Get("class") == className
+		return hn.label == labelName && reStrCmp(StrStrMap(hn.attr).Get("class"), className)
 	}
+	//match id
 	tmp = strings.Split(selector, "#")
 	if len(tmp) > 1 {
 		labelName = tmp[0]
 		idName = tmp[1]
-		return hn.label == labelName && StrStrMap(hn.attr).Get("id") == idName
+		return hn.label == labelName && reStrCmp(StrStrMap(hn.attr).Get("id"), idName)
 	}
 	return hn.label == selector
 }
@@ -306,6 +323,10 @@ func (hn *HtmlNode) Html() string {
 
 func (hn *HtmlNode) Value() string {
 	return hn.value
+}
+
+func (hn *HtmlNode) Attr(selector string) string {
+	return StrStrMap(hn.attr).Get(selector)
 }
 
 func (hn *HtmlNode) Append(node *HtmlNode) {
