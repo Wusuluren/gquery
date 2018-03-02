@@ -5,233 +5,22 @@ import (
 	"strings"
 )
 
-type HtmlNode struct {
-	Label     string
-	Attribute map[string]string
-	Text      string
-	parent    *HtmlNode
-	child     []*HtmlNode
-	isPaired  bool
+var _ = fmt.Println
+
+type GqueryHtml struct {
+	treeRoot *HtmlNode
 }
 
 const (
-	Label = iota
-	AttributeName
-	AttributeValue
-	Value
-	OpenTag
-	CloseTag
-	Text
-	Comment
+	cLabel = iota
+	cAttrName
+	cAttrValue
+	cValue
+	cOpenTag
+	cCloseTag
+	cText
+	cComment
 )
-
-func (hn *HtmlNode) Parent() *HtmlNode {
-	return hn.parent
-}
-
-func (hn *HtmlNode) Children(str string) []*HtmlNode {
-	result := make([]*HtmlNode, 0)
-	if str != "*" && str != "" {
-		tmps := strings.Split(str, ".")
-		labelName := tmps[0]
-		className := ""
-		idName := ""
-		if len(tmps) > 1 {
-			if tmps[1][0] == '#' {
-				idName = tmps[1][1:]
-			} else {
-				className = tmps[1]
-			}
-		}
-		for _, node := range hn.child {
-			if node.Label == labelName {
-				if className != "" {
-					if value, ok := node.Attribute["class"]; ok {
-						//fmt.Println(className, value)
-						//if className == value {
-						if ReStrCmp(value, className) {
-							//fmt.Println(node)
-							result = append(result, node)
-						}
-					}
-				} else if idName != "" {
-					if value, ok := node.Attribute["id"]; ok {
-						if idName == value {
-							result = append(result, node)
-						}
-					}
-				} else {
-					result = append(result, node)
-				}
-			}
-		}
-	} else {
-		result = append(result, hn.child...)
-	}
-	return result
-}
-
-func (hn *HtmlNode) Find(str string) *HtmlNode {
-	result := &HtmlNode{}
-	if str != "*" && str != "" {
-		tmps := strings.Split(str, ".")
-		labelName := tmps[0]
-		className := ""
-		idName := ""
-		if len(tmps) > 1 {
-			if tmps[1][0] == '#' {
-				idName = tmps[1][1:]
-			} else {
-				className = tmps[1]
-			}
-		}
-		for _, node := range hn.child {
-			if node.Label == labelName {
-				if className != "" {
-					if value, ok := node.Attribute["class"]; ok {
-						//fmt.Println(value, className)
-						//if className == value {
-						if ReStrCmp(value, className) {
-							result = node
-							break
-						}
-					}
-				} else if idName != "" {
-					if value, ok := node.Attribute["id"]; ok {
-						if idName == value {
-							result = node
-							break
-						}
-					}
-				} else {
-					result = node
-					break
-				}
-			}
-		}
-	} else {
-		if len(hn.child) > 0 {
-			result = hn.child[0]
-		}
-	}
-	//fmt.Println(str, result)
-	return result
-}
-
-func (hn *HtmlNode) Next() *HtmlNode {
-	result := &HtmlNode{}
-	return result
-}
-
-func (hn *HtmlNode) First(str string) *HtmlNode {
-	result := &HtmlNode{}
-	if str != "" {
-		tmps := strings.Split(str, ".")
-		idName := tmps[0]
-		className := ""
-		if len(tmps) > 1 {
-			className = tmps[1]
-		}
-		for _, node := range hn.child {
-			if node.Label == idName {
-				if className != "" {
-					if value, ok := node.Attribute["class"]; ok {
-						if ReStrCmp(value, className) {
-							result = node
-							break
-						}
-					}
-				} else {
-					result = node
-					break
-				}
-			}
-		}
-	} else {
-		if len(hn.child) > 0 {
-			result = hn.child[0]
-		}
-	}
-	return result
-}
-
-func (hn *HtmlNode) Last(str string) *HtmlNode {
-	result := &HtmlNode{}
-	childNum := len(hn.child)
-	if str != "" && childNum > 0 {
-		tmps := strings.Split(str, ".")
-		idName := tmps[0]
-		className := ""
-		if len(tmps) > 1 {
-			className = tmps[1]
-		}
-		for i := childNum - 1; i >= 0; i-- {
-			node := hn.child[i]
-			if node.Label == idName {
-				if className != "" {
-					if value, ok := node.Attribute["class"]; ok {
-						if ReStrCmp(value, className) {
-							result = node
-							break
-						}
-					}
-				} else {
-					result = node
-					break
-				}
-			}
-		}
-	} else {
-		if childNum > 0 {
-			result = hn.child[childNum-1]
-		}
-	}
-	return result
-}
-
-func (hn *HtmlNode) Eq(str string, idx int) *HtmlNode {
-	result := &HtmlNode{}
-	ctr := 0
-	if str != "*" && str != "" {
-		tmps := strings.Split(str, ".")
-		idName := tmps[0]
-		className := ""
-		if len(tmps) > 1 {
-			className = tmps[1]
-		}
-		for _, node := range hn.child {
-			if node.Label == idName {
-				if className != "" {
-					if value, ok := node.Attribute["class"]; ok {
-						if ReStrCmp(value, className) {
-							if ctr == idx {
-								result = node
-								break
-							} else {
-								ctr++
-							}
-						}
-					}
-				} else {
-					if ctr == idx {
-						result = node
-						break
-					} else {
-						ctr++
-					}
-				}
-			}
-		}
-	} else {
-		for i, node := range hn.child {
-			if i == idx {
-				result = node
-				break
-			}
-		}
-	}
-	return result
-}
 
 func printNodeTree(node *HtmlNode, tabNum int) {
 	tabArry := make([]string, tabNum)
@@ -239,18 +28,18 @@ func printNodeTree(node *HtmlNode, tabNum int) {
 		tabArry[i] = "\t"
 	}
 	tabStr := strings.Join(tabArry, "")
-	if node.Label != "" {
-		fmt.Println(tabStr, "label: ", node.Label)
+	if node.label != "" {
+		fmt.Println(tabStr, "label: ", node.label)
 	}
-	if node.Text != "" {
-		fmt.Println(tabStr, "text: ", node.Text)
+	if node.text != "" {
+		fmt.Println(tabStr, "text: ", node.text)
 	}
-	if len(node.Attribute) > 0 {
-		fmt.Println(tabStr, "attr: ", node.Attribute)
+	if len(node.attr) > 0 {
+		fmt.Println(tabStr, "attr: ", node.attr)
 	}
-	if len(node.child) > 0 {
-		fmt.Println(tabStr, "child: ", len(node.child))
-		for _, child := range node.child {
+	if len(node.children) > 0 {
+		fmt.Println(tabStr, "child: ", len(node.children))
+		for _, child := range node.children {
 			printNodeTree(child, tabNum+1)
 		}
 	}
@@ -262,12 +51,12 @@ func printNodeList(nodeList []*HtmlNode) {
 	}
 }
 
-func ParseHtml(html string) []*HtmlNode {
-	nodes := make([]string, 0, 64)
+func (gq *GqueryHtml) parse(html string) *HtmlNode {
+	stats := make([]string, 0, 64)
 	inQuote := false
 	beginIdx := 0
 	endIdx := 0
-	except := OpenTag
+	except := cOpenTag
 	for i := 0; i < len(html); i++ {
 		cur := html[i]
 		if cur == '"' {
@@ -276,45 +65,45 @@ func ParseHtml(html string) []*HtmlNode {
 			if cur == '<' {
 				if html[i+1] == '!' && html[i+2] == '-' && html[i+3] == '-' {
 					beginIdx = i
-					except = Comment
+					except = cComment
 				}
-				if except != Comment {
-					if except == Text {
+				if except != cComment {
+					if except == cText {
 						endIdx = i
-						nodes = append(nodes, html[beginIdx:endIdx])
+						stats = append(stats, html[beginIdx:endIdx])
 					}
 					beginIdx = i
-					except = CloseTag
+					except = cCloseTag
 				}
 			} else if cur == '>' {
-				if except == Comment && html[i-1] == '-' && html[i-2] == '-' {
+				if except == cComment && html[i-1] == '-' && html[i-2] == '-' {
 					endIdx = i + 1
-					nodes = append(nodes, html[beginIdx:endIdx])
+					stats = append(stats, html[beginIdx:endIdx])
 					beginIdx = i + 1
-					except = OpenTag
-				} else if except != Comment {
+					except = cOpenTag
+				} else if except != cComment {
 					endIdx = i + 1
-					nodes = append(nodes, html[beginIdx:endIdx])
+					stats = append(stats, html[beginIdx:endIdx])
 					beginIdx = i + 1
-					except = OpenTag
+					except = cOpenTag
 				}
-			} else if except != Text {
+			} else if except != cText {
 				if cur != ' ' && cur != '\n' && cur != '\t' && cur != '\r' {
-					if except == OpenTag {
-						except = Text
+					if except == cOpenTag {
+						except = cText
 					}
 				}
 			}
 		}
 	}
-	//for _,node := range nodes {
-	//	fmt.Println(node)
+	//for _,stat := range stats {
+	//	fmt.Println(stat)
 	//}
 
-	HtmlNodeList := make([]*HtmlNode, 0)
-	for i := 0; i < len(nodes); i++ {
-		node := nodes[i]
-		except = OpenTag
+	nodeList := make([]*HtmlNode, 0)
+	for i := 0; i < len(stats); i++ {
+		node := stats[i]
+		except = cOpenTag
 		inQuote = false
 		beginIdx = 0
 		endIdx = 0
@@ -331,11 +120,11 @@ func ParseHtml(html string) []*HtmlNode {
 				if cur == '<' {
 					if node[j+1] == '!' {
 						beginIdx = j + 4
-						except = Comment
+						except = cComment
 					}
-					if except == OpenTag {
+					if except == cOpenTag {
 						beginIdx = j + 1
-						except = Label
+						except = cLabel
 					}
 				} else if cur == '>' {
 					if node[j-1] == '/' {
@@ -343,49 +132,49 @@ func ParseHtml(html string) []*HtmlNode {
 					} else {
 						endIdx = j
 					}
-					if except == AttributeName {
+					if except == cAttrName {
 						attrName = strings.Trim(node[beginIdx:endIdx], "\t\n\r ")
 						attr[attrName] = ""
 						beginIdx = endIdx + 1
-						except = OpenTag
-					} else if except == AttributeValue {
+						except = cOpenTag
+					} else if except == cAttrValue {
 						attrValue = node[beginIdx:endIdx]
 						attr[attrName] = attrValue
 						beginIdx = endIdx + 1
-						except = OpenTag
-					} else if except == Label {
+						except = cOpenTag
+					} else if except == cLabel {
 						label = node[beginIdx:endIdx]
 						beginIdx = endIdx + 1
-						except = OpenTag
-					} else if except == Comment {
+						except = cOpenTag
+					} else if except == cComment {
 						if node[j-1] == '-' {
 							endIdx = j - 2
 							text = node[beginIdx:endIdx]
 							beginIdx = j + 1
 							//fmt.Println(text)
-							except = OpenTag
+							except = cOpenTag
 							break
 						}
 					}
 				} else if cur == ' ' {
 					endIdx = j
-					if except == Label {
+					if except == cLabel {
 						label = node[beginIdx:endIdx]
 						beginIdx = endIdx + 1
-						except = AttributeName
-					} else if except == AttributeValue {
+						except = cAttrName
+					} else if except == cAttrValue {
 						attrValue = node[beginIdx:endIdx]
 						attr[attrName] = attrValue
 						beginIdx = endIdx + 1
-						except = AttributeName
+						except = cAttrName
 					}
 				} else if cur == '=' {
 					endIdx = j
 					attrName = strings.Trim(node[beginIdx:endIdx], "\t\n\r ")
 					beginIdx = endIdx + 1
-					except = AttributeValue
+					except = cAttrValue
 				} else {
-					if except == OpenTag {
+					if except == cOpenTag {
 						text = node
 						break
 					}
@@ -393,58 +182,71 @@ func ParseHtml(html string) []*HtmlNode {
 			}
 
 		}
-		HtmlNodeList = append(HtmlNodeList, &HtmlNode{
-			Label:     label,
-			Text:      text,
-			Attribute: attr,
+		nodeList = append(nodeList, &HtmlNode{
+			label: label,
+			text:  text,
+			html:  text, //FIXME!
+			attr:  attr,
 		})
 	}
-	//fmt.Println(len(HtmlNodeList))
-	//printNodeList(HtmlNodeList)
+	//fmt.Println(len(nodeList))
+	//printNodeList(nodeList)
 
-	htmlNodeTree := make([]*HtmlNode, 0)
-	for i := 0; i < len(HtmlNodeList); i++ {
-		cur := HtmlNodeList[i]
-		if len(cur.Label) > 0 {
-			if cur.Label[0] == '/' { //reduce
-				label2 := cur.Label[1:len(cur.Label)]
-				for j := len(htmlNodeTree) - 1; j >= 0; j-- { // find last pair
-					label := htmlNodeTree[j].Label
-					if len(label) > 0 && !htmlNodeTree[j].isPaired {
+	nodeTree := make([]*HtmlNode, 0)
+	for i := 0; i < len(nodeList); i++ {
+		cur := nodeList[i]
+		if len(cur.label) > 0 {
+			if cur.label[0] == '/' { //reduce
+				label2 := cur.label[1:len(cur.label)]
+				for j := len(nodeTree) - 1; j >= 0; j-- { // find last pair
+					label := nodeTree[j].label
+					if len(label) > 0 && !nodeTree[j].isPaired {
 						if label == label2 {
-							if j == len(htmlNodeTree)-1 {
-								htmlNodeTree[j].isPaired = true
+							if j == len(nodeTree)-1 {
+								nodeTree[j].isPaired = true
 								break
 							}
-							childList := make([]*HtmlNode, 0)
-							for _, node := range htmlNodeTree[j+1:] {
-								childList = append(childList, node)
-							}
-							htmlNodeTree[j].child = childList
-							htmlNodeTree[j].isPaired = true
+							children := make([]*HtmlNode, 0)
+							children = append(children, nodeTree[j+1:]...)
+							nodeTree[j].children = children
+							nodeTree[j].isPaired = true
 
-							htmlNodeTree2 := make([]*HtmlNode, 0)
-							for _, node := range htmlNodeTree[0 : j+1] {
-								htmlNodeTree2 = append(htmlNodeTree2, node)
-							}
-							htmlNodeTree = htmlNodeTree2
-							//printNodeList(htmlNodeTree)
+							nodeTree2 := make([]*HtmlNode, 0)
+							nodeTree2 = append(nodeTree2, nodeTree[0:j+1]...)
+							nodeTree = nodeTree2
+							//printNodeList(nodeTree)
 							//fmt.Println("+++++++++++++++++++++++")
 							break
 						}
 					}
 				}
 			} else {
-				htmlNodeTree = append(htmlNodeTree, cur)
+				nodeTree = append(nodeTree, cur)
 			}
 		} else {
-			htmlNodeTree = append(htmlNodeTree, cur)
+			nodeTree = append(nodeTree, cur)
 		}
 	}
-	//fmt.Println(len(htmlNodeTree), len(HtmlNodeList))
-	//for _, node := range htmlNodeTree {
+	//fmt.Println(len(nodeTree), len(nodeList))
+	//for _, node := range nodeTree {
 	//	printNodeTree(node, 0)
 	//}
 
-	return htmlNodeTree
+	nodeTreeRoot := &HtmlNode{
+		children: nodeTree,
+	}
+	for _, node := range nodeTreeRoot.children {
+		node.parent = nodeTreeRoot
+	}
+	return nodeTreeRoot
+}
+
+func (gq *GqueryHtml) Gquery(selector string) []*HtmlNode {
+	return gq.treeRoot.Gquery(selector)
+}
+
+func NewHtml(selector string) *GqueryHtml {
+	gq := &GqueryHtml{}
+	gq.treeRoot = gq.parse(selector)
+	return gq
 }

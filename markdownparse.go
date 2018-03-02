@@ -219,7 +219,7 @@ func (gq *GqueryMarkdown) Gquery(Type int) []*MarkdownNode {
 }
 
 func NewMarkdown(str string) *GqueryMarkdown {
-	md := &GqueryMarkdown{}
-	md.treeRoot = md.parse(str)
-	return md
+	gq := &GqueryMarkdown{}
+	gq.treeRoot = gq.parse(str)
+	return gq
 }

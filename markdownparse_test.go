@@ -5,10 +5,10 @@ import (
 	"testing"
 )
 
-func printNodeList(t *testing.T, nodeList []*gquery.MarkdownNode) {
+func printMarkdownNodeList(t *testing.T, nodeList []*gquery.MarkdownNode) {
 	for _, node := range nodeList {
 		t.Log(node)
-		printNodeList(t, node.Children(gquery.MdAll))
+		printMarkdownNodeList(t, node.Children(gquery.MdAll))
 	}
 }
 
@@ -26,7 +26,7 @@ http://www.google.com
 	gq := gquery.NewMarkdown(testData)
 	children := gq.Gquery(gquery.MdAll)
 	t.Log(len(children))
-	printNodeList(t, children)
+	printMarkdownNodeList(t, children)
 
 	t.Log("test search")
 	t.Log(gq.Gquery(gquery.MdTitle)[0])

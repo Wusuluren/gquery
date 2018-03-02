@@ -13,6 +13,14 @@ type MarkdownNode struct {
 
 type MarkdownNodes []*MarkdownNode
 
+func (md *MarkdownNode) isFitType(Type int) bool {
+	return md._type == Type
+}
+
+func (md *MarkdownNode) isFitNode(node *MarkdownNode) bool {
+	return md._type == node._type
+}
+
 func (md *MarkdownNode) Gquery(Type int) []*MarkdownNode {
 	return md.Find(Type)
 }
@@ -46,7 +54,7 @@ func (md *MarkdownNode) Children(Type int) []*MarkdownNode {
 		children = append(children, md.children...)
 	} else {
 		for _, node := range md.children {
-			if node._type == Type {
+			if node.isFitType(Type) {
 				children = append(children, node)
 			}
 		}
@@ -60,7 +68,7 @@ func (md *MarkdownNode) Find(Type int) []*MarkdownNode {
 		children = append(children, md.children...)
 	} else {
 		for _, node := range md.children {
-			if node._type == Type {
+			if node.isFitType(Type) {
 				children = append(children, node)
 			}
 			children = append(children, node.Find(Type)...)
@@ -79,7 +87,7 @@ func (md *MarkdownNode) Siblings(Type int) []*MarkdownNode {
 		}
 	} else {
 		for _, node := range md.children {
-			if node._type == Type && node != md {
+			if node.isFitType(Type) && node != md {
 				siblings = append(siblings, node)
 			}
 		}
@@ -91,7 +99,7 @@ func (md *MarkdownNode) Next() *MarkdownNode {
 	var sibling *MarkdownNode
 	findSelf := false
 	for _, node := range md.parent.children {
-		if findSelf && node._type == md._type {
+		if findSelf && md.isFitNode(node) {
 			sibling = node
 			break
 		}
@@ -106,7 +114,7 @@ func (md *MarkdownNode) NextAll() []*MarkdownNode {
 	siblings := make([]*MarkdownNode, 0)
 	findSelf := false
 	for _, node := range md.parent.children {
-		if findSelf && node._type == md._type {
+		if findSelf && md.isFitNode(node) {
 			siblings = append(siblings, node)
 		}
 		if node == md {
@@ -120,10 +128,10 @@ func (md *MarkdownNode) NextUntil(Type int) []*MarkdownNode {
 	siblings := make([]*MarkdownNode, 0)
 	findSelf := false
 	for _, node := range md.parent.children {
-		if findSelf && node._type == Type {
+		if findSelf && node.isFitType(Type) {
 			break
 		}
-		if findSelf && node._type == md._type {
+		if findSelf && md.isFitNode(node) {
 			siblings = append(siblings, node)
 		}
 		if node == md {
@@ -138,7 +146,7 @@ func (md *MarkdownNode) Prev() *MarkdownNode {
 	findSelf := false
 	for i := len(md.parent.children) - 1; i >= 0; i-- {
 		node := md.parent.children[i]
-		if findSelf && node._type == md._type {
+		if findSelf && md.isFitNode(node) {
 			sibling = node
 			break
 		}
@@ -154,7 +162,7 @@ func (md *MarkdownNode) PrevAll() []*MarkdownNode {
 	findSelf := false
 	for i := len(md.parent.children) - 1; i >= 0; i-- {
 		node := md.parent.children[i]
-		if findSelf && node._type == md._type {
+		if findSelf && md.isFitNode(node) {
 			siblings = append(siblings, node)
 		}
 		if node == md {
@@ -169,10 +177,10 @@ func (md *MarkdownNode) PrevUntil(Type int) []*MarkdownNode {
 	findSelf := false
 	for i := len(md.parent.children) - 1; i >= 0; i-- {
 		node := md.parent.children[i]
-		if findSelf && node._type == Type {
+		if findSelf && node.isFitType(Type) {
 			break
 		}
-		if findSelf && node._type == md._type {
+		if findSelf && md.isFitNode(node) {
 			siblings = append(siblings, node)
 		}
 		if node == md {
@@ -190,7 +198,7 @@ func (md *MarkdownNode) First(Type int) *MarkdownNode {
 		}
 	} else {
 		for _, node := range md.children {
-			if node._type == Type {
+			if node.isFitType(Type) {
 				child = node
 				break
 			}
@@ -209,7 +217,7 @@ func (md *MarkdownNode) Last(Type int) *MarkdownNode {
 	}
 	for i := childrenNum - 1; i >= 0; i-- {
 		node := md.children[i]
-		if node._type == Type {
+		if node.isFitType(Type) {
 			child = node
 			break
 		}
@@ -236,7 +244,7 @@ func (md MarkdownNodes) Filter(Type int) []*MarkdownNode {
 		children = append(children, md...)
 	} else {
 		for _, node := range md {
-			if node._type == Type {
+			if node.isFitType(Type) {
 				children = append(children, node)
 			}
 		}
