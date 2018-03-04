@@ -112,6 +112,8 @@ func (gq *GqueryHtml) parse(html string) *HtmlNode {
 		text := ""
 		attrName := ""
 		attrValue := ""
+		id := ""
+		classes := make([]string, 0)
 		for j := 0; j < len(node); j++ {
 			cur := node[j]
 			if cur == '"' {
@@ -139,7 +141,15 @@ func (gq *GqueryHtml) parse(html string) *HtmlNode {
 						except = cOpenTag
 					} else if except == cAttrValue {
 						attrValue = node[beginIdx:endIdx]
-						attr[attrName] = attrValue
+						attrValue = strings.TrimLeft(attrValue, "\"")
+						attrValue = strings.TrimRight(attrValue, "\"")
+						if attrName == "id" {
+							id = attrValue
+						} else if attrName == "class" {
+							classes = strings.Split(attrValue, " ")
+						} else {
+							attr[attrName] = attrValue
+						}
 						beginIdx = endIdx + 1
 						except = cOpenTag
 					} else if except == cLabel {
@@ -151,7 +161,6 @@ func (gq *GqueryHtml) parse(html string) *HtmlNode {
 							endIdx = j - 2
 							text = node[beginIdx:endIdx]
 							beginIdx = j + 1
-							//fmt.Println(text)
 							except = cOpenTag
 							break
 						}
@@ -164,7 +173,15 @@ func (gq *GqueryHtml) parse(html string) *HtmlNode {
 						except = cAttrName
 					} else if except == cAttrValue {
 						attrValue = node[beginIdx:endIdx]
-						attr[attrName] = attrValue
+						attrValue = strings.TrimLeft(attrValue, "\"")
+						attrValue = strings.TrimRight(attrValue, "\"")
+						if attrName == "id" {
+							id = attrValue
+						} else if attrName == "class" {
+							classes = strings.Split(attrValue, " ")
+						} else {
+							attr[attrName] = attrValue
+						}
 						beginIdx = endIdx + 1
 						except = cAttrName
 					}
@@ -184,6 +201,8 @@ func (gq *GqueryHtml) parse(html string) *HtmlNode {
 		}
 		nodeList = append(nodeList, &HtmlNode{
 			label: label,
+			id:    id,
+			class: classes,
 			text:  text,
 			html:  text, //FIXME!
 			attr:  attr,
@@ -241,12 +260,45 @@ func (gq *GqueryHtml) parse(html string) *HtmlNode {
 	return nodeTreeRoot
 }
 
-func (gq *GqueryHtml) Gquery(selector string) []*HtmlNode {
+func (gq *GqueryHtml) Gquery(selector string) HtmlNodes {
 	return gq.treeRoot.Gquery(selector)
 }
 
-func NewHtml(selector string) *GqueryHtml {
+func (gq *GqueryHtml) TreeRoot() *HtmlNode {
+	return gq.treeRoot
+}
+
+func NewHtmlNode(conf map[string]interface{}) *HtmlNode {
+	node := &HtmlNode{}
+	for name, value := range conf {
+		switch name {
+		case "label":
+			if label, ok := value.(string); ok {
+				node.label = label
+			}
+		case "text":
+			if text, ok := value.(string); ok {
+				node.text = text
+			}
+		case "html":
+			if html, ok := value.(string); ok {
+				node.html = html
+			}
+		case "value":
+			if value, ok := value.(string); ok {
+				node.value = value
+			}
+		case "attr":
+			if attr, ok := value.(map[string]string); ok {
+				node.attr = attr
+			}
+		}
+	}
+	return node
+}
+
+func NewHtml(html string) *GqueryHtml {
 	gq := &GqueryHtml{}
-	gq.treeRoot = gq.parse(selector)
+	gq.treeRoot = gq.parse(html)
 	return gq
 }

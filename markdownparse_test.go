@@ -32,4 +32,14 @@ http://www.google.com
 	t.Log(gq.Gquery(gquery.MdTitle)[0])
 	t.Log(gq.Gquery(gquery.MdUnorderList)[0].First(gquery.MdUnorderList) ==
 		gq.Gquery(gquery.MdUnorderList)[0].Last(gquery.MdUnorderList))
+
+	node := gquery.NewMarkdownNode(map[string]interface{}{
+		"type":  gquery.MdUnorderList,
+		"value": "test",
+		"text":  "test",
+		"html":  "test",
+	})
+	t.Log(node)
+	gq.Gquery(gquery.MdUnorderList)[0].Append(node)
+	t.Log(gq.Gquery(gquery.MdUnorderList)[0].Last(gquery.MdUnorderList) == node)
 }

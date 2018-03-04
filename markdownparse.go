@@ -218,8 +218,41 @@ func (gq *GqueryMarkdown) Gquery(Type int) []*MarkdownNode {
 	return gq.treeRoot.Gquery(Type)
 }
 
-func NewMarkdown(str string) *GqueryMarkdown {
+func (gq *GqueryMarkdown) TreeRoot() *MarkdownNode {
+	return gq.treeRoot
+}
+
+func NewMarkdownNode(conf map[string]interface{}) *MarkdownNode {
+	node := &MarkdownNode{}
+	for name, value := range conf {
+		switch name {
+		case "type":
+			if _type, ok := value.(int); ok {
+				node._type = _type
+			}
+		case "text":
+			if text, ok := value.(string); ok {
+				node.text = text
+			}
+		case "html":
+			if html, ok := value.(string); ok {
+				node.html = html
+			}
+		case "value":
+			if value, ok := value.(string); ok {
+				node.value = value
+			}
+		case "attr":
+			if attr, ok := value.(map[string]string); ok {
+				node.attr = attr
+			}
+		}
+	}
+	return node
+}
+
+func NewMarkdown(markdown string) *GqueryMarkdown {
 	gq := &GqueryMarkdown{}
-	gq.treeRoot = gq.parse(str)
+	gq.treeRoot = gq.parse(markdown)
 	return gq
 }

@@ -21,7 +21,8 @@ func TestParseHtml(t *testing.T) {
     <title>Document</title>
 </head>
 <body>
-    
+    <div id="test" class="test1 test2" attr="attr">
+	</div>
 </body>
 </html>
 `
@@ -36,7 +37,18 @@ func TestParseHtml(t *testing.T) {
 		t.Log(metaNode)
 	}
 	t.Log(gq.Gquery("title")[0].Text() == gq.Gquery("title")[0].Html())
-	t.Log(gq.Gquery("head")[0].Attr("charset"))
-	t.Log(gq.Gquery("head")[1].Attr("name"))
-	t.Log(gq.Gquery("html")[0].First("[name]") == gq.Gquery("head")[1])
+	t.Log(gq.Gquery("head")[0].First("meta").Attr("charset"))
+	t.Log(gq.Gquery("meta").Eq(1).Attr("name"))
+	t.Log(gq.Gquery("meta").Eq(1) == gq.Gquery("[name]")[0])
+
+	t.Log("test insert")
+	node := gquery.NewHtmlNode(map[string]interface{}{
+		"label": "p",
+		"value": "test",
+		"text":  "test",
+		"html":  "test",
+	})
+	t.Log(node)
+	gq.Gquery("body")[0].Append(node)
+	t.Log(gq.Gquery("body")[0].Last("p") == node)
 }

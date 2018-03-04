@@ -1,14 +1,13 @@
 package gquery
 
 import (
-	"fmt"
 	"strings"
 )
 
-var _ = fmt.Println
-
 type HtmlNode struct {
 	label    string
+	id       string
+	class    []string
 	attr     map[string]string
 	text     string
 	value    string
@@ -21,37 +20,99 @@ type HtmlNode struct {
 type HtmlNodes []*HtmlNode
 
 func (hn *HtmlNode) isFitSelector(selector string) bool {
-	var idName, className, labelName string
-	var tmp []string
+	var labelName, idName, className string
+	var attrName, attrValue string
+	classNames := make([]string, 0)
+	attr := make(map[string]string)
+	if hn.label == "" {
+		return false
+	}
 	if selector == "*" {
 		return true
 	}
-	//match attr
-	if selector[0] == '[' && selector[len(selector)-1] == ']' {
-		selector = selector[1 : len(selector)-1]
-		tmp = strings.Split(selector, "=")
-		if len(tmp) > 1 {
-			attrName := tmp[0]
-			attrValue := tmp[1]
-			return reStrCmp(StrStrMap(hn.attr).Get(attrName), attrValue)
+	type Idx struct {
+		idx int
+		c   byte
+	}
+	idxs := make([]Idx, 0)
+	for i := 0; i < len(selector); i++ {
+		c := selector[i]
+		if c == '.' || c == '#' || c == '[' || c == ']' || c == '=' {
+			idxs = append(idxs, Idx{
+				idx: i,
+				c:   c,
+			})
 		}
-		return StrStrMap(hn.attr).Get(selector) != ""
 	}
-	//match class
-	tmp = strings.Split(selector, ".")
-	if len(tmp) > 1 {
-		labelName = tmp[0]
-		className = tmp[1]
-		return hn.label == labelName && reStrCmp(StrStrMap(hn.attr).Get("class"), className)
+	idxsSize := len(idxs)
+	if idxsSize > 0 {
+		labelName = selector[0:idxs[0].idx]
+		for i, idx := range idxs {
+			switch idx.c {
+			case '.':
+				if i+1 < idxsSize {
+					className = selector[idx.idx+1 : idxs[i+1].idx]
+				} else {
+					className = selector[idx.idx+1:]
+				}
+				classNames = append(classNames, className)
+			case '#':
+				if idName == "" {
+					if i+1 < idxsSize {
+						idName = selector[idx.idx+1 : idxs[i+1].idx]
+					} else {
+						idName = selector[idx.idx+1:]
+					}
+				}
+			case '[':
+				if i+1 < idxsSize {
+					attrName = selector[idx.idx+1 : idxs[i+1].idx]
+				}
+				attrValue = ""
+			case '=':
+				if i+1 < idxsSize {
+					attrValue = selector[idx.idx+1 : idxs[i+1].idx]
+					attrValue = strings.TrimLeft(attrValue, "'")
+					attrValue = strings.TrimRight(attrValue, "'")
+				}
+			case ']':
+				attr[attrName] = attrValue
+			}
+		}
+	} else {
+		labelName = selector
 	}
-	//match id
-	tmp = strings.Split(selector, "#")
-	if len(tmp) > 1 {
-		labelName = tmp[0]
-		idName = tmp[1]
-		return hn.label == labelName && reStrCmp(StrStrMap(hn.attr).Get("id"), idName)
+
+	if labelName != "" && hn.label != labelName {
+		return false
 	}
-	return hn.label == selector
+	if idName != "" && hn.id != idName {
+		return false
+	}
+	if len(classNames) > 0 {
+		for _, className := range classNames {
+			isFind := false
+			for _, class := range hn.class {
+				if class == className {
+					isFind = true
+					break
+				}
+			}
+			if !isFind {
+				return false
+			}
+		}
+	}
+	for attrName, attrValue := range attr {
+		if value, ok := hn.attr[attrName]; ok {
+			if attrValue != "" && value != attrValue {
+				return false
+			}
+		} else {
+			return false
+		}
+	}
+	return true
 }
 
 func (hn *HtmlNode) isFitNode(node *HtmlNode) bool {
@@ -70,15 +131,22 @@ func (hn *HtmlNode) isFitNode(node *HtmlNode) bool {
 	return true
 }
 
-func (hn *HtmlNode) Gquery(selector string) []*HtmlNode {
-	return hn.Find(selector)
+func (hn *HtmlNode) Gquery(selector string) HtmlNodes {
+	children := make([]*HtmlNode, 0)
+	if hn.isFitSelector(selector) {
+		children = append(children, hn)
+	}
+	for _, child := range hn.children {
+		children = append(children, child.Gquery(selector)...)
+	}
+	return children
 }
 
 func (hn *HtmlNode) Parent() *HtmlNode {
 	return hn.parent
 }
 
-func (hn *HtmlNode) Parents() []*HtmlNode {
+func (hn *HtmlNode) Parents() HtmlNodes {
 	parents := make([]*HtmlNode, 0)
 	for parent := hn.parent; parent != nil; parent = parent.parent {
 		parents = append(parents, parent)
@@ -86,10 +154,10 @@ func (hn *HtmlNode) Parents() []*HtmlNode {
 	return parents
 }
 
-func (hn *HtmlNode) ParentsUntil(selector string) []*HtmlNode {
+func (hn *HtmlNode) ParentsUntil(selector string) HtmlNodes {
 	parents := make([]*HtmlNode, 0)
 	for parent := hn.parent; parent != nil; parent = parent.parent {
-		if !hn.isFitSelector(selector) {
+		if !parent.isFitSelector(selector) {
 			break
 		}
 		parents = append(parents, parent)
@@ -97,13 +165,13 @@ func (hn *HtmlNode) ParentsUntil(selector string) []*HtmlNode {
 	return parents
 }
 
-func (hn *HtmlNode) Children(selector string) []*HtmlNode {
+func (hn *HtmlNode) Children(selector string) HtmlNodes {
 	children := make([]*HtmlNode, 0)
 	if selector == "*" {
 		children = append(children, hn.children...)
 	} else {
 		for _, node := range hn.children {
-			if hn.isFitSelector(selector) {
+			if node.isFitSelector(selector) {
 				children = append(children, node)
 			}
 		}
@@ -111,13 +179,13 @@ func (hn *HtmlNode) Children(selector string) []*HtmlNode {
 	return children
 }
 
-func (hn *HtmlNode) Find(selector string) []*HtmlNode {
+func (hn *HtmlNode) Find(selector string) HtmlNodes {
 	children := make([]*HtmlNode, 0)
 	if selector == "*" {
 		children = append(children, hn.children...)
 	} else {
 		for _, node := range hn.children {
-			if hn.isFitSelector(selector) {
+			if node.isFitSelector(selector) {
 				children = append(children, node)
 			}
 			children = append(children, node.Find(selector)...)
@@ -126,7 +194,7 @@ func (hn *HtmlNode) Find(selector string) []*HtmlNode {
 	return children
 }
 
-func (hn *HtmlNode) Siblings(selector string) []*HtmlNode {
+func (hn *HtmlNode) Siblings(selector string) HtmlNodes {
 	siblings := make([]*HtmlNode, 0)
 	if selector == "*" {
 		for _, node := range hn.parent.children {
@@ -136,7 +204,7 @@ func (hn *HtmlNode) Siblings(selector string) []*HtmlNode {
 		}
 	} else {
 		for _, node := range hn.children {
-			if hn.isFitSelector(selector) && node != hn {
+			if node.isFitSelector(selector) && node != hn {
 				siblings = append(siblings, node)
 			}
 		}
@@ -145,10 +213,10 @@ func (hn *HtmlNode) Siblings(selector string) []*HtmlNode {
 }
 
 func (hn *HtmlNode) Next() *HtmlNode {
-	var sibling *HtmlNode
+	sibling := &HtmlNode{}
 	findSelf := false
 	for _, node := range hn.parent.children {
-		if findSelf && hn.isFitNode(node) {
+		if findSelf && node.isFitNode(hn) {
 			sibling = node
 			break
 		}
@@ -159,11 +227,11 @@ func (hn *HtmlNode) Next() *HtmlNode {
 	return sibling
 }
 
-func (hn *HtmlNode) NextAll() []*HtmlNode {
+func (hn *HtmlNode) NextAll() HtmlNodes {
 	siblings := make([]*HtmlNode, 0)
 	findSelf := false
 	for _, node := range hn.parent.children {
-		if findSelf && hn.isFitNode(node) {
+		if findSelf && node.isFitNode(hn) {
 			siblings = append(siblings, node)
 		}
 		if node == hn {
@@ -173,14 +241,14 @@ func (hn *HtmlNode) NextAll() []*HtmlNode {
 	return siblings
 }
 
-func (hn *HtmlNode) NextUntil(selector string) []*HtmlNode {
+func (hn *HtmlNode) NextUntil(selector string) HtmlNodes {
 	siblings := make([]*HtmlNode, 0)
 	findSelf := false
 	for _, node := range hn.parent.children {
 		if findSelf && hn.isFitSelector(selector) {
 			break
 		}
-		if findSelf && hn.isFitNode(node) {
+		if findSelf && node.isFitNode(hn) {
 			siblings = append(siblings, node)
 		}
 		if node == hn {
@@ -191,11 +259,11 @@ func (hn *HtmlNode) NextUntil(selector string) []*HtmlNode {
 }
 
 func (hn *HtmlNode) Prev() *HtmlNode {
-	var sibling *HtmlNode
+	sibling := &HtmlNode{}
 	findSelf := false
 	for i := len(hn.parent.children) - 1; i >= 0; i-- {
 		node := hn.parent.children[i]
-		if findSelf && hn.isFitNode(node) {
+		if findSelf && node.isFitNode(hn) {
 			sibling = node
 			break
 		}
@@ -206,12 +274,12 @@ func (hn *HtmlNode) Prev() *HtmlNode {
 	return sibling
 }
 
-func (hn *HtmlNode) PrevAll() []*HtmlNode {
+func (hn *HtmlNode) PrevAll() HtmlNodes {
 	siblings := make([]*HtmlNode, 0)
 	findSelf := false
 	for i := len(hn.parent.children) - 1; i >= 0; i-- {
 		node := hn.parent.children[i]
-		if findSelf && hn.isFitNode(node) {
+		if findSelf && node.isFitNode(hn) {
 			siblings = append(siblings, node)
 		}
 		if node == hn {
@@ -221,7 +289,7 @@ func (hn *HtmlNode) PrevAll() []*HtmlNode {
 	return siblings
 }
 
-func (hn *HtmlNode) PrevUntil(selector string) []*HtmlNode {
+func (hn *HtmlNode) PrevUntil(selector string) HtmlNodes {
 	siblings := make([]*HtmlNode, 0)
 	findSelf := false
 	for i := len(hn.parent.children) - 1; i >= 0; i-- {
@@ -229,7 +297,7 @@ func (hn *HtmlNode) PrevUntil(selector string) []*HtmlNode {
 		if findSelf && node.isFitSelector(selector) {
 			break
 		}
-		if findSelf && hn.isFitNode(node) {
+		if findSelf && node.isFitNode(hn) {
 			siblings = append(siblings, node)
 		}
 		if node == hn {
@@ -240,7 +308,7 @@ func (hn *HtmlNode) PrevUntil(selector string) []*HtmlNode {
 }
 
 func (hn *HtmlNode) First(selector string) *HtmlNode {
-	var child *HtmlNode
+	child := &HtmlNode{}
 	if selector == "*" {
 		if len(hn.children) > 0 {
 			child = hn.children[0]
@@ -257,7 +325,7 @@ func (hn *HtmlNode) First(selector string) *HtmlNode {
 }
 
 func (hn *HtmlNode) Last(selector string) *HtmlNode {
-	var child *HtmlNode
+	child := &HtmlNode{}
 	childrenNum := len(hn.children)
 	if selector == "*" {
 		if childrenNum > 0 {
@@ -274,12 +342,10 @@ func (hn *HtmlNode) Last(selector string) *HtmlNode {
 	return child
 }
 
-func (hn *HtmlNode) Eq(idx int) *HtmlNode {
-	var child *HtmlNode
-	ctr := 0
-	for _, node := range hn.children {
-		ctr++
-		if ctr >= idx {
+func (hn HtmlNodes) Eq(idx int) *HtmlNode {
+	child := &HtmlNode{}
+	for i, node := range hn {
+		if i >= idx {
 			child = node
 			break
 		}
@@ -287,7 +353,7 @@ func (hn *HtmlNode) Eq(idx int) *HtmlNode {
 	return child
 }
 
-func (hn HtmlNodes) Filter(selector string) []*HtmlNode {
+func (hn HtmlNodes) Filter(selector string) HtmlNodes {
 	children := make([]*HtmlNode, 0)
 	if selector == "*" {
 		children = append(children, hn...)
@@ -301,7 +367,7 @@ func (hn HtmlNodes) Filter(selector string) []*HtmlNode {
 	return children
 }
 
-func (hn HtmlNodes) Not(selector string) []*HtmlNode {
+func (hn HtmlNodes) Not(selector string) HtmlNodes {
 	children := make([]*HtmlNode, 0)
 	if selector != "*" {
 		for _, node := range hn {
@@ -323,6 +389,18 @@ func (hn *HtmlNode) Html() string {
 
 func (hn *HtmlNode) Value() string {
 	return hn.value
+}
+
+func (hn *HtmlNode) SetText(str string) {
+	hn.text = str
+}
+
+func (hn *HtmlNode) SetHtml(str string) {
+	hn.html = str
+}
+
+func (hn *HtmlNode) SetValue(str string) {
+	hn.value = str
 }
 
 func (hn *HtmlNode) Attr(selector string) string {
