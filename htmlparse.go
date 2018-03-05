@@ -276,6 +276,14 @@ func NewHtmlNode(conf map[string]interface{}) *HtmlNode {
 			if label, ok := value.(string); ok {
 				node.label = label
 			}
+		case "id":
+			if id, ok := value.(string); ok {
+				node.id = id
+			}
+		case "class":
+			if class, ok := value.([]string); ok {
+				node.class = class
+			}
 		case "text":
 			if text, ok := value.(string); ok {
 				node.text = text
