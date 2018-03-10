@@ -213,7 +213,7 @@ func (hn *HtmlNode) Siblings(selector string) HtmlNodes {
 }
 
 func (hn *HtmlNode) Next() *HtmlNode {
-	sibling := &HtmlNode{}
+	var sibling *HtmlNode
 	findSelf := false
 	for _, node := range hn.parent.children {
 		if findSelf && node.isFitNode(hn) {
@@ -223,6 +223,9 @@ func (hn *HtmlNode) Next() *HtmlNode {
 		if node == hn {
 			findSelf = true
 		}
+	}
+	if sibling == nil {
+		sibling = &HtmlNode{}
 	}
 	return sibling
 }
@@ -259,7 +262,7 @@ func (hn *HtmlNode) NextUntil(selector string) HtmlNodes {
 }
 
 func (hn *HtmlNode) Prev() *HtmlNode {
-	sibling := &HtmlNode{}
+	var sibling *HtmlNode
 	findSelf := false
 	for i := len(hn.parent.children) - 1; i >= 0; i-- {
 		node := hn.parent.children[i]
@@ -270,6 +273,9 @@ func (hn *HtmlNode) Prev() *HtmlNode {
 		if node == hn {
 			findSelf = true
 		}
+	}
+	if sibling == nil {
+		sibling = &HtmlNode{}
 	}
 	return sibling
 }
@@ -308,7 +314,7 @@ func (hn *HtmlNode) PrevUntil(selector string) HtmlNodes {
 }
 
 func (hn *HtmlNode) First(selector string) *HtmlNode {
-	child := &HtmlNode{}
+	var child *HtmlNode
 	if selector == "*" {
 		if len(hn.children) > 0 {
 			child = hn.children[0]
@@ -321,11 +327,14 @@ func (hn *HtmlNode) First(selector string) *HtmlNode {
 			}
 		}
 	}
+	if child == nil {
+		child = &HtmlNode{}
+	}
 	return child
 }
 
 func (hn *HtmlNode) Last(selector string) *HtmlNode {
-	child := &HtmlNode{}
+	var child *HtmlNode
 	childrenNum := len(hn.children)
 	if selector == "*" {
 		if childrenNum > 0 {
@@ -339,16 +348,22 @@ func (hn *HtmlNode) Last(selector string) *HtmlNode {
 			break
 		}
 	}
+	if child == nil {
+		child = &HtmlNode{}
+	}
 	return child
 }
 
 func (hn HtmlNodes) Eq(idx int) *HtmlNode {
-	child := &HtmlNode{}
+	var child *HtmlNode
 	for i, node := range hn {
 		if i >= idx {
 			child = node
 			break
 		}
+	}
+	if child == nil {
+		child = &HtmlNode{}
 	}
 	return child
 }

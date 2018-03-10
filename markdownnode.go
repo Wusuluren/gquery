@@ -103,7 +103,7 @@ func (md *MarkdownNode) Siblings(Type int) MarkdownNodes {
 }
 
 func (md *MarkdownNode) Next() *MarkdownNode {
-	sibling := &MarkdownNode{}
+	var sibling *MarkdownNode
 	findSelf := false
 	for _, node := range md.parent.children {
 		if findSelf && node.isFitNode(md) {
@@ -113,6 +113,9 @@ func (md *MarkdownNode) Next() *MarkdownNode {
 		if node == md {
 			findSelf = true
 		}
+	}
+	if sibling == nil {
+		sibling = &MarkdownNode{}
 	}
 	return sibling
 }
@@ -149,7 +152,7 @@ func (md *MarkdownNode) NextUntil(Type int) MarkdownNodes {
 }
 
 func (md *MarkdownNode) Prev() *MarkdownNode {
-	sibling := &MarkdownNode{}
+	var sibling *MarkdownNode
 	findSelf := false
 	for i := len(md.parent.children) - 1; i >= 0; i-- {
 		node := md.parent.children[i]
@@ -160,6 +163,9 @@ func (md *MarkdownNode) Prev() *MarkdownNode {
 		if node == md {
 			findSelf = true
 		}
+	}
+	if sibling == nil {
+		sibling = &MarkdownNode{}
 	}
 	return sibling
 }
@@ -198,7 +204,7 @@ func (md *MarkdownNode) PrevUntil(Type int) MarkdownNodes {
 }
 
 func (md *MarkdownNode) First(Type int) *MarkdownNode {
-	child := &MarkdownNode{}
+	var child *MarkdownNode
 	if Type == MdAll {
 		if len(md.children) > 0 {
 			child = md.children[0]
@@ -211,11 +217,14 @@ func (md *MarkdownNode) First(Type int) *MarkdownNode {
 			}
 		}
 	}
+	if child == nil {
+		child = &MarkdownNode{}
+	}
 	return child
 }
 
 func (md *MarkdownNode) Last(Type int) *MarkdownNode {
-	child := &MarkdownNode{}
+	var child *MarkdownNode
 	childrenNum := len(md.children)
 	if Type == MdAll {
 		if childrenNum > 0 {
@@ -229,16 +238,22 @@ func (md *MarkdownNode) Last(Type int) *MarkdownNode {
 			break
 		}
 	}
+	if child == nil {
+		child = &MarkdownNode{}
+	}
 	return child
 }
 
 func (md MarkdownNodes) Eq(idx int) *MarkdownNode {
-	child := &MarkdownNode{}
+	var child *MarkdownNode
 	for i, node := range md {
 		if i >= idx {
 			child = node
 			break
 		}
+	}
+	if child == nil {
+		child = &MarkdownNode{}
 	}
 	return child
 }
