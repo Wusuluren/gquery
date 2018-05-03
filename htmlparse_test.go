@@ -21,7 +21,7 @@ func TestParseHtml(t *testing.T) {
     <title>Document</title>
 </head>
 <body>
-    <div id="test" class="test1 test2" attr="attr">
+    <div id="test" class="test1 test2" attr="attr" class="test3">
 	</div>
 </body>
 </html>

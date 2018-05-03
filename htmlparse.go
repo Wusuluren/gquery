@@ -31,6 +31,12 @@ func printNodeTree(node *HtmlNode, tabNum int) {
 	if node.label != "" {
 		fmt.Println(tabStr, "label: ", node.label)
 	}
+	if node.id != "" {
+		fmt.Println(tabStr, "id: ", node.id)
+	}
+	if len(node.class) > 0 {
+		fmt.Println(tabStr, "class: ", strings.Join(node.class, " "))
+	}
 	if node.text != "" {
 		fmt.Println(tabStr, "text: ", node.text)
 	}
@@ -146,7 +152,7 @@ func (gq *GqueryHtml) parse(html string) *HtmlNode {
 						if attrName == "id" {
 							id = attrValue
 						} else if attrName == "class" {
-							classes = strings.Split(attrValue, " ")
+							classes = append(classes, strings.Split(attrValue, " ")...)
 						} else {
 							attr[attrName] = attrValue
 						}
@@ -178,7 +184,7 @@ func (gq *GqueryHtml) parse(html string) *HtmlNode {
 						if attrName == "id" {
 							id = attrValue
 						} else if attrName == "class" {
-							classes = strings.Split(attrValue, " ")
+							classes = append(classes, strings.Split(attrValue, " ")...)
 						} else {
 							attr[attrName] = attrValue
 						}

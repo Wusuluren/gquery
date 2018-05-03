@@ -15,9 +15,20 @@ type HtmlNode struct {
 	parent   *HtmlNode
 	children []*HtmlNode
 	isPaired bool
+	isFailed bool
 }
 
 type HtmlNodes []*HtmlNode
+
+func newFailedNode() *HtmlNode {
+	return &HtmlNode{
+		isFailed: true,
+	}
+}
+
+func (hn *HtmlNode) Failed() bool {
+	return hn.isFailed
+}
 
 func (hn *HtmlNode) isFitSelector(selector string) bool {
 	var labelName, idName, className string
@@ -213,6 +224,9 @@ func (hn *HtmlNode) Siblings(selector string) HtmlNodes {
 }
 
 func (hn *HtmlNode) Next() *HtmlNode {
+	if hn.isFailed {
+		return newFailedNode()
+	}
 	var sibling *HtmlNode
 	findSelf := false
 	for _, node := range hn.parent.children {
@@ -225,7 +239,7 @@ func (hn *HtmlNode) Next() *HtmlNode {
 		}
 	}
 	if sibling == nil {
-		sibling = &HtmlNode{}
+		sibling = newFailedNode()
 	}
 	return sibling
 }
@@ -262,6 +276,9 @@ func (hn *HtmlNode) NextUntil(selector string) HtmlNodes {
 }
 
 func (hn *HtmlNode) Prev() *HtmlNode {
+	if hn.isFailed {
+		return newFailedNode()
+	}
 	var sibling *HtmlNode
 	findSelf := false
 	for i := len(hn.parent.children) - 1; i >= 0; i-- {
@@ -275,7 +292,7 @@ func (hn *HtmlNode) Prev() *HtmlNode {
 		}
 	}
 	if sibling == nil {
-		sibling = &HtmlNode{}
+		sibling = newFailedNode()
 	}
 	return sibling
 }
@@ -314,6 +331,9 @@ func (hn *HtmlNode) PrevUntil(selector string) HtmlNodes {
 }
 
 func (hn *HtmlNode) First(selector string) *HtmlNode {
+	if hn.isFailed {
+		return newFailedNode()
+	}
 	var child *HtmlNode
 	if selector == "*" {
 		if len(hn.children) > 0 {
@@ -328,12 +348,15 @@ func (hn *HtmlNode) First(selector string) *HtmlNode {
 		}
 	}
 	if child == nil {
-		child = &HtmlNode{}
+		child = newFailedNode()
 	}
 	return child
 }
 
 func (hn *HtmlNode) Last(selector string) *HtmlNode {
+	if hn.isFailed {
+		return newFailedNode()
+	}
 	var child *HtmlNode
 	childrenNum := len(hn.children)
 	if selector == "*" {
@@ -349,7 +372,7 @@ func (hn *HtmlNode) Last(selector string) *HtmlNode {
 		}
 	}
 	if child == nil {
-		child = &HtmlNode{}
+		child = newFailedNode()
 	}
 	return child
 }
@@ -363,7 +386,7 @@ func (hn HtmlNodes) Eq(idx int) *HtmlNode {
 		}
 	}
 	if child == nil {
-		child = &HtmlNode{}
+		child = newFailedNode()
 	}
 	return child
 }
